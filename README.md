@@ -2,10 +2,10 @@
 
 ![CI](https://github.com/EduVerg65/Pipeline-CI/actions/workflows/ci.yml/badge.svg)
 
-**Equipe:** Bruno Cernach Madeira, 14648; Eduardo Vergentino Malaquias, 14532; Leonardo Dos Santos Barbosa, 240020; Gustavo Pelissari Oening, 14531.
-**Ferramenta:** GitHub Actions
-**Definição do pipeline:** [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
-**Evidências:** [`docs/EVIDENCIAS.md`](docs/EVIDENCIAS.md)
+- **Equipe:** Bruno Cernach Madeira (14648), Eduardo Vergentino Malaquias (14532), Leonardo Dos Santos Barbosa (240020), Gustavo Pelissari Oening (14531)
+- **Ferramenta:** GitHub Actions
+- **Definição do pipeline:** [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
+- **Evidências:** [`docs/EVIDENCIAS.md`](docs/EVIDENCIAS.md)
 
 A aplicação é propositalmente simples (uma biblioteca em Node.js que calcula subtotal, desconto e frete de um pedido). O foco do trabalho é o pipeline: qualquer pessoa com acesso ao repositório consegue repetir o processo e chegar ao mesmo resultado.
 
@@ -106,8 +106,8 @@ node app/cli.js          # a primeira linha mostra versão, commit e build
 Requisitos: Git, Node.js 22 e Bash (Linux, macOS ou Git Bash/WSL no Windows).
 
 ```bash
-git clone https://github.com/USUARIO/REPOSITORIO.git
-cd REPOSITORIO
+git clone https://github.com/EduVerg65/Pipeline-CI.git
+cd Pipeline-CI
 ./scripts/ci-local.sh                       # caminho de sucesso
 SIMULAR_FALHA=true ./scripts/ci-local.sh    # demonstra a interrupção
 ```

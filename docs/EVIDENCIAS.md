@@ -15,7 +15,8 @@ Ferramenta: GitHub Actions — workflow `CI` (`.github/workflows/ci.yml`)
 | Duração | 23 s |
 | Resultado | ✅ Sucesso — Detecção de segredos e Build, testes e artefato aprovados; 13 testes aprovados |
 | Artefato | `t5-pipeline-ci-1.0.0-dac08e2.tar.gz` (+ `.sha256`) |
-| SHA-256 | 976d98733818776208da6079b07a2607ce9685eb9a4f011a7e911885948b62e3 |
+| SHA-256 | `976d98733818776208da6079b07a2607ce9685eb9a4f011a7e911885948b62e3` |
+| Observação | O "Digest" exibido na seção *Artifacts* do GitHub é do .zip de download montado pelo GitHub (que contém o .tar.gz e o .sha256). O SHA-256 acima é do próprio .tar.gz e pode ser conferido com `sha256sum -c` após extrair o .zip. |
 
 Capturas:
 - `evidencias/01-sucesso-visao-geral.png` — os dois jobs em verde e a tabela de resumo
