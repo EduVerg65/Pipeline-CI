@@ -1,0 +1,156 @@
+# =====================================================================
+# Trabalho 5 — Pipeline CI mínimo e reproduzível (GitHub Actions)
+#
+# GATILHOS : push na main, pull request para a main, execução manual
+# ETAPAS   : segredos -> checkout -> dependências -> testes -> build
+#            -> artefato -> evidências
+# FALHA    : qualquer etapa com erro interrompe o job; o artefato
+#            só é gerado se todos os testes passarem
+# ARTEFATO : t5-pipeline-ci-<versão>-<commit7>.tar.gz + SHA-256
+# =====================================================================
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      simular_falha:
+        description: "Forçar a falha de um teste (para gerar a evidência de falha detectada)"
+        type: boolean
+        default: false
+
+# Privilégio mínimo: o pipeline só precisa ler o código.
+permissions:
+  contents: read
+
+# Se chegar um commit novo no mesmo branch, cancela a execução antiga.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Repassa a opção da execução manual para os testes ("false" nos outros gatilhos).
+  SIMULAR_FALHA: ${{ inputs.simular_falha == true && 'true' || 'false' }}
+
+jobs:
+  # -------------------------------------------------------------------
+  # Job 1 — Detecção de segredos no histórico do repositório
+  # -------------------------------------------------------------------
+  segredos:
+    name: Detecção de segredos
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout (histórico completo)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Instalar Gitleaks
+        env:
+          GITLEAKS_VERSION: 8.18.4
+        run: |
+          curl -sSfL -o gitleaks.tar.gz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          tar -xzf gitleaks.tar.gz gitleaks
+          ./gitleaks version
+
+      - name: Varredura de segredos
+        # --redact: se algo for encontrado, o valor NÃO aparece no log.
+        run: ./gitleaks detect --source . --redact --verbose --exit-code 1
+
+  # -------------------------------------------------------------------
+  # Job 2 — Build, testes e artefato
+  # -------------------------------------------------------------------
+  build:
+    name: Build, testes e artefato
+    needs: segredos
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      artefato: ${{ steps.pacote.outputs.nome }}
+      sha256: ${{ steps.pacote.outputs.sha256 }}
+    steps:
+      - name: Checkout do commit que disparou o pipeline
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Identificação da execução
+        run: |
+          echo "Repositório : ${GITHUB_REPOSITORY}"
+          echo "Evento      : ${GITHUB_EVENT_NAME}"
+          echo "Branch/ref  : ${GITHUB_REF}"
+          echo "Commit      : ${GITHUB_SHA}"
+          echo "Execução    : ${GITHUB_RUN_ID} (tentativa ${GITHUB_RUN_ATTEMPT})"
+          echo "Falha simulada: ${SIMULAR_FALHA}"
+          git log -1 --format='Mensagem    : %s%nAutor       : %an'
+
+      - name: Configurar Node.js (versão do .nvmrc) com cache do npm
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Instalar dependências (ambiente limpo, travado pelo lockfile)
+        run: npm ci
+
+      - name: Auditoria de dependências
+        run: npm audit --audit-level=high
+
+      - name: Executar testes
+        run: |
+          mkdir -p reports
+          npm run test:ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Gerar artefato identificado
+        id: pacote
+        run: npm run package
+
+      - name: Publicar artefato
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.pacote.outputs.nome }}
+          path: |
+            artifacts/*.tar.gz
+            artifacts/*.sha256
+          if-no-files-found: error
+          retention-days: 30
+
+      # ---- Evidências: rodam mesmo quando uma etapa anterior falhou ----
+      - name: Publicar relatório de testes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorio-testes-${{ github.sha }}
+          path: reports/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Resumo da execução
+        if: always()
+        env:
+          RESULTADO: ${{ job.status }}
+          ARTEFATO: ${{ steps.pacote.outputs.nome }}
+          HASH: ${{ steps.pacote.outputs.sha256 }}
+        run: |
+          {
+            echo "## Resultado: ${RESULTADO}"
+            echo ""
+            echo "| Campo | Valor |"
+            echo "|---|---|"
+            echo "| Commit | \`${GITHUB_SHA}\` |"
+            echo "| Evento | ${GITHUB_EVENT_NAME} |"
+            echo "| Branch | ${GITHUB_REF_NAME} |"
+            echo "| Execução | ${GITHUB_RUN_ID} (tentativa ${GITHUB_RUN_ATTEMPT}) |"
+            echo "| Falha simulada | ${SIMULAR_FALHA} |"
+            echo "| Artefato | ${ARTEFATO:-não gerado} |"
+            echo "| SHA-256 | ${HASH:-—} |"
+          } >> "$GITHUB_STEP_SUMMARY"

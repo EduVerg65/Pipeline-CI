@@ -1,0 +1,19 @@
+{
+  "name": "t5-pipeline-ci",
+  "version": "1.0.0",
+  "description": "Trabalho 5 — Pipeline CI mínimo e reproduzível (aplicação de exemplo: cálculo de pedidos)",
+  "main": "src/index.js",
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "clean": "node scripts/clean.js",
+    "test": "node --test \"test/**/*.test.js\"",
+    "test:ci": "node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=reports/junit.xml \"test/**/*.test.js\"",
+    "build": "node scripts/build.js",
+    "package": "node scripts/package.js",
+    "start": "node src/cli.js"
+  },
+  "license": "MIT"
+}

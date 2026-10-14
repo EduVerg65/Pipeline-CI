@@ -1,0 +1,11 @@
+node_modules/
+dist/
+reports/
+artifacts/
+
+# Segredos e configurações locais nunca vão para o repositório
+.env
+.env.*
+!.env.example
+*.pem
+*.key
